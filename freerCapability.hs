@@ -6,6 +6,7 @@ module FreerCapability where
 
 import Control.Monad.Freer
 import Control.Monad.Freer.State
+import Control.Concurrent.STM 
 
 type Capability f = Integer
 
@@ -44,6 +45,23 @@ runCapabilityEffect = reinterpret $ \case
   Use cap eff -> do
     m <- get
     raise $ call m cap eff
+
+
+runCapabilityEffectSTM :: TVar (CapabilityMap effs f)  
+                        -> Eff (CapabilityEffect effs f ': effs) a 
+                        -> Eff (IO ': effs ) a  
+runCapabilityEffectSTM capMapTVar = reinterpret $ \case
+  Create handler -> do 
+   m <- send $ atomically $ do 
+    currentMap <- readTVar capMapTVar 
+    let extendedMap = extend currentMap handler 
+    writeTVar capMapTVar extendedMap
+    return extendedMap
+   return (getNext m) 
+
+  Use cap eff -> do  
+   m <- send $ atomically $ readTVar capMapTVar
+   raise $ call m cap eff
 
 
 data ContactCapability a where
