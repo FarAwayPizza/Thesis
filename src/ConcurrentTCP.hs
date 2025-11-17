@@ -1,5 +1,5 @@
 
-module concurrentTCP where 
+module ConcurrentTCP where 
 
 import Control.Concurrent (forkFinally)
 

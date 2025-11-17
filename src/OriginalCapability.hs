@@ -1,4 +1,7 @@
 {-# LANGUAGE GADTs,LambdaCase,ImpredicativeTypes,ScopedTypeVariables #-}
+
+module OriginalCapability where 
+
 import Control.Applicative
 import Control.Monad (guard,ap)
 

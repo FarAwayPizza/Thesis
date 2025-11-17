@@ -64,30 +64,3 @@ runCapabilityEffectSTM capMapTVar = reinterpret $ \case
    raise $ call m cap eff
 
 
-data ContactCapability a where
-  Name :: ContactCapability String
-  SendMessage :: String -> ContactCapability ()
-
-createMailBox :: String -> Eff (CapabilityEffect '[IO] ContactCapability ': IO ': '[]) (Capability ContactCapability)
-createMailBox name = create @'[IO] (\c -> case c of 
-    Name -> pure name  
-    (SendMessage msg) -> send $ putStrLn msg )
-
-initialMap :: CapabilityMap effs f
-initialMap = CapabilityMap (0, \_ -> error "Capability not found")
-
-type ContactTest = CapabilityEffect '[IO] ContactCapability ': IO ': '[]  
-
-data TestEffect a where
-    GetInt :: TestEffect Int
-    GetString :: TestEffect String
-
-simpleHandler :: TestEffect a -> a
-simpleHandler GetInt = 42
-simpleHandler GetString = "hello"
-
-
-mailDeliveryTest :: Eff ContactTest () 
-mailDeliveryTest = do 
-    m <- createMailBox "jacob"
-    use @'[IO] m $ SendMessage "Hallo" 

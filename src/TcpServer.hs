@@ -1,5 +1,5 @@
 
-module TcpServer where 
+module TcpServer(runServer, handleClient) where 
 
 import Network.Socket
 import Control.Concurrent
@@ -16,7 +16,7 @@ handleClient con motd =
     line <- hGetLine con
     atomically $ modifyTVar motd (++ line ++ "\n")
 
-main = do
+runServer = do
    motd <- newTVarIO "Hello\n"
    E.bracket open close (loop motd) where
       open = do
