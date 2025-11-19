@@ -18,7 +18,6 @@ import FreerCapability
   , runCapabilityEffectSTM 
   )
 
-{-- make a datatype similar to ContactCapability but for bank konto eksempel. -}
 
 data ContactCapability a where
   Name :: ContactCapability String
@@ -45,12 +44,6 @@ instance FromJSON (ContactCapability ()) where
                                                                   guard $ x  == ("SendMessage" :: String)
                                                                   v.: "message")
 
-
-
-
-
-
-
 data ContactRequest 
   = GetNameRequest Integer 
   | SendMessageRequest Integer String 
@@ -68,16 +61,8 @@ data ContactResponse
 instance ToJSON ContactResponse 
 instance FromJSON ContactResponse  
 
-{- 
-data BankCapability a where 
-  CreateAccount :: String -> InitialBalance BankCapability AccountId 
-  GetBalance 
-  Transfer 
-  Deposit
-  Withdraw 
 
 
--}
 createMailBox :: String -> Eff (CapabilityEffect '[IO] ContactCapability ': IO ': '[]) (Capability ContactCapability)
 createMailBox name = create @'[IO] (\c -> case c of 
     Name -> pure name  
