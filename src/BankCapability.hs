@@ -18,17 +18,19 @@ import FreerCapability
   )
 
 {- newtype vs type ? -}
-newtype InitialBalance = Integer 
-newtype Amount = Integer 
-newtype AccountId = Integer
+newtype InitialBalance = InitialBalance Integer deriving (Show, ToJSON, FromJSON)
+newtype Amount = Amount Integer deriving (Show, ToJSON, FromJSON) 
+newtype AccountId = AccountId Integer deriving (Show, ToJSON, FromJSON)
+
 
 {- import qualified Data.ByteString.Lazy.Char8 as B -}
 
-{- Change String to be an type BankErrors with different ErrorMessageResponses. -}
 data BankCapability a where 
   GetAccountId :: String -> BankCapability AccountId
   GetBalance :: AccountId -> BankCapability Amount  
-  Transfer :: AccountId -> AccountId -> Amount -> BankCapability (Either String Amount)   
+  Transfer :: AccountId -> AccountId -> Amount -> BankCapability (Either String Amount)  
+
+data SomeBankCapability = forall a. SomeBankCapability (BankCapability a)
   
 instance Show (BankCapability a) where
   show (GetAccountId accId) = "GetAccountId " ++ show accId
@@ -36,31 +38,22 @@ instance Show (BankCapability a) where
   show (Transfer from to amount)  = "Transfer " ++ show from ++ " -> " ++ show to ++ " " ++ show amount ++ "$"
   
 instance ToJSON (BankCapability a) where 
- toJSON (GetAccountId name) = object ["action" .= ("GetAccountId" :: String, "name" .= name)]
+ toJSON (GetAccountId name) = object ["action" .= ("GetAccountId" :: String), "name" .= name]
  toJSON (GetBalance accId) = object ["action" .= ("GetBalance" :: String), "accId" .= accId] 
  toJSON (Transfer from to amount) = object ["action" .= ("Transfer" :: String), "from" .= from, "to" .= to, "amount" .= amount]
 
 
 {-  I need to double check if it's supposed to be name for GetAccountId, accId for GetBalance and amount for Transfer -}
-instance FromJSON (BankCapability Amount) where
+instance FromJSON SomeBankCapability where
   parseJSON = withObject "BankCapability" $ \v -> do 
                                                    action <- v .: "action"
                                                    case action :: String of
-                                                    "GetAccountId" -> GetAccountId <$> v .: "name" 
-                                                    "GetBalance" -> GetBalance <$> v .: "accId"
-                                                    "Transfer"   -> Transfer <$> v .: "from" <*> v .: "to" <*> v .: "amount" 
-                                                    _            -> fail $ "Invalid action for Amount: " ++ action
+                                                    "GetAccountId" -> SomeBankCapability <$> (GetAccountId <$> v .: "name") 
+                                                    "GetBalance"   -> SomeBankCapability <$> (GetBalance <$> v .: "accId")
+                                                    "Transfer"     -> SomeBankCapability <$> (Transfer <$> v .: "from" <*> v .: "to" <*> v .: "amount") 
+                                                    _              -> fail $ "Invalid action for Amount: " ++ action
 
-data BankActions 
- =  GetAccountId
- | GetBalance Amount
- | Transfer Amount
- deriving (Show, Generic) 
-
-instance ToJSON BankActions
-instance FromJSON BankActions
-
-
+{- 
 data BankResponse 
   =  ErrorMessageResponse String 
   | GetBalanceResponse Integer  
@@ -70,4 +63,4 @@ data BankResponse
 instance ToJSON BankResponse
 instance FromJSON BankResponse
 
-
+-}
