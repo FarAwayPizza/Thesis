@@ -60,15 +60,15 @@
   (major1) == 3 && (major2) <  2 || \
   (major1) == 3 && (major2) == 2 && (minor) <= 8)
 #endif /* MIN_VERSION_network */
-/* package network-run-0.4.4 */
+/* package network-run-0.5.0 */
 #ifndef VERSION_network_run
-#define VERSION_network_run "0.4.4"
+#define VERSION_network_run "0.5.0"
 #endif /* VERSION_network_run */
 #ifndef MIN_VERSION_network_run
 #define MIN_VERSION_network_run(major1,major2,minor) (\
   (major1) <  0 || \
-  (major1) == 0 && (major2) <  4 || \
-  (major1) == 0 && (major2) == 4 && (minor) <= 4)
+  (major1) == 0 && (major2) <  5 || \
+  (major1) == 0 && (major2) == 5 && (minor) <= 0)
 #endif /* MIN_VERSION_network_run */
 /* package stm-2.5.1.0 */
 #ifndef VERSION_stm

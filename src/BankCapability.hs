@@ -17,7 +17,6 @@ import FreerCapability
   , runCapabilityEffectSTM 
   )
 
-{- newtype vs type ? -}
 newtype InitialBalance = InitialBalance Integer deriving (Show, ToJSON, FromJSON)
 newtype Amount = Amount Integer deriving (Show, ToJSON, FromJSON) 
 newtype AccountId = AccountId Integer deriving (Show, ToJSON, FromJSON)
@@ -31,7 +30,10 @@ data BankCapability a where
   Transfer :: AccountId -> AccountId -> Amount -> BankCapability (Either String Amount)  
 
 data SomeBankCapability = forall a. SomeBankCapability (BankCapability a)
-  
+
+instance Show SomeBankCapability where
+  show (SomeBankCapability x) = show x
+
 instance Show (BankCapability a) where
   show (GetAccountId accId) = "GetAccountId " ++ show accId
   show (GetBalance balance) = "GetBalance " ++ show balance
