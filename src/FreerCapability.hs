@@ -6,7 +6,7 @@ module FreerCapability where
 
 import Control.Monad.Freer
 import Control.Monad.Freer.State
-import Control.Concurrent.STM 
+import Control.Concurrent.STM
 
 type Capability f = Integer
 
@@ -23,6 +23,7 @@ use cap eff = send (Use @f @a @effs0 cap eff)
 
 
 newtype CapabilityMap effs f = CapabilityMap (Integer, Integer -> (forall a. f a -> Eff effs a))
+emptyCapabilityMap = CapabilityMap (0, \ x -> undefined ) 
 
 getNext :: CapabilityMap effs f -> Capability f
 getNext (CapabilityMap (i,_)) = i
@@ -62,5 +63,7 @@ runCapabilityEffectSTM capMapTVar = reinterpret $ \case
   Use cap eff -> do  
    m <- send $ atomically $ readTVar capMapTVar
    raise $ call m cap eff
+
+
 
 

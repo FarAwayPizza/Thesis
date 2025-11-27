@@ -62,8 +62,8 @@ instance ToJSON ContactResponse
 instance FromJSON ContactResponse  
 
 
-{- There wil be a similar function called createBankAccout in BankCapability.hs. 
- - The bank needs to store the bankaccoutns. Try to use STM TVar and map. 
+{- There wil be a similar function called createBankAccount in BankCapability.hs. 
+ - The bank needs to store the bank accounts. Try to use STM TVar and map. 
  - Just like there is a Name and a SendMessage there needs to be one for eacth BankCapability
  - -}
 createMailBox :: String -> Eff (CapabilityEffect '[IO] ContactCapability ': IO ': '[]) (Capability ContactCapability)

@@ -82,7 +82,8 @@ library
                       stm,
                       network,
                       network-run,
-                      bytestring
+                      bytestring,
+                      containers 
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -112,7 +113,8 @@ executable effectExperiment
         bytestring,
         aeson,
         freer-simple,
-        stm
+        stm,
+        containers 
 
     -- Directories containing source files.
     hs-source-dirs:   app

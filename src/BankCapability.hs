@@ -5,8 +5,11 @@ module BankCapability where
 import GHC.Generics (Generic)
 import Data.Aeson
 import Control.Monad.Freer 
-import Control.Concurrent.STM (atomically, newTVar, TVar)
+import Control.Concurrent.STM (atomically, newTVar, newTVarIO, readTVar, TVar, modifyTVar)
 import Control.Monad 
+import qualified Data.Map as Map
+import Data.Map(Map)
+import Control.Monad.Freer.State 
 import FreerCapability
   ( CapabilityEffect
   , Capability
@@ -14,55 +17,79 @@ import FreerCapability
   , use
   , CapabilityMap(CapabilityMap)
   , runCapabilityEffect 
-  , runCapabilityEffectSTM 
+  , runCapabilityEffectSTM,
+  emptyCapabilityMap
   )
 
 newtype InitialBalance = InitialBalance Integer deriving (Show, ToJSON, FromJSON)
 newtype Amount = Amount Integer deriving (Show, ToJSON, FromJSON) 
-newtype AccountId = AccountId Integer deriving (Show, ToJSON, FromJSON)
+newtype AccountId = AccountId Integer deriving (Show, Eq, Ord, ToJSON, FromJSON)
 
+type BankState = Map.Map AccountId Amount
 
 {- import qualified Data.ByteString.Lazy.Char8 as B -}
 
-data BankCapability a where 
-  GetAccountId :: String -> BankCapability AccountId
-  GetBalance :: AccountId -> BankCapability Amount  
-  Transfer :: AccountId -> AccountId -> Amount -> BankCapability (Either String Amount)  
+data AccountCapability a where 
+  GetAccountId :: AccountCapability AccountId
+  GetBalance :: AccountCapability Amount  
+  Transfer :: AccountId -> Amount -> AccountCapability (Either String Amount)  
 
-data SomeBankCapability = forall a. SomeBankCapability (BankCapability a)
+data SomeAccountCapability = forall a. SomeAccountCapability (AccountCapability a)
 
-instance Show SomeBankCapability where
-  show (SomeBankCapability x) = show x
+instance Show SomeAccountCapability where
+  show (SomeAccountCapability x) = show x
 
-instance Show (BankCapability a) where
-  show (GetAccountId accId) = "GetAccountId " ++ show accId
-  show (GetBalance balance) = "GetBalance " ++ show balance
-  show (Transfer from to amount)  = "Transfer " ++ show from ++ " -> " ++ show to ++ " " ++ show amount ++ "$"
+instance Show (AccountCapability a) where
+  show GetAccountId  = "GetAccountId"
+  show GetBalance = "GetBalance" 
+  show (Transfer to amount)  = "Transfer " ++ " -> " ++ show to ++ " " ++ show amount ++ "$"
   
-instance ToJSON (BankCapability a) where 
- toJSON (GetAccountId name) = object ["action" .= ("GetAccountId" :: String), "name" .= name]
- toJSON (GetBalance accId) = object ["action" .= ("GetBalance" :: String), "accId" .= accId] 
- toJSON (Transfer from to amount) = object ["action" .= ("Transfer" :: String), "from" .= from, "to" .= to, "amount" .= amount]
+instance ToJSON (AccountCapability a) where 
+ toJSON GetAccountId = object ["action" .= ("GetAccountId" :: String)]
+ toJSON GetBalance = object ["action" .= ("GetBalance" :: String)]
+ toJSON (Transfer to amount) = object ["action" .= ("Transfer" :: String), "to" .= to, "amount" .= amount]
 
 
-{-  I need to double check if it's supposed to be name for GetAccountId, accId for GetBalance and amount for Transfer -}
-instance FromJSON SomeBankCapability where
-  parseJSON = withObject "BankCapability" $ \v -> do 
+instance FromJSON SomeAccountCapability where
+  parseJSON = withObject "AccountCapability" $ \v -> do 
                                                    action <- v .: "action"
                                                    case action :: String of
-                                                    "GetAccountId" -> SomeBankCapability <$> (GetAccountId <$> v .: "name") 
-                                                    "GetBalance"   -> SomeBankCapability <$> (GetBalance <$> v .: "accId")
-                                                    "Transfer"     -> SomeBankCapability <$> (Transfer <$> v .: "from" <*> v .: "to" <*> v .: "amount") 
+                                                    "GetAccountId" -> pure $ SomeAccountCapability $ GetAccountId 
+                                                    "GetBalance"   -> pure $ SomeAccountCapability $ GetBalance  
+                                                    "Transfer"     -> SomeAccountCapability <$> (Transfer <$> v .: "to" <*> v .: "amount") 
                                                     _              -> fail $ "Invalid action for Amount: " ++ action
 
-{- 
-data BankResponse 
-  =  ErrorMessageResponse String 
-  | GetBalanceResponse Integer  
-  | TransferSuccessfulResponse String  
-  deriving (Show, Generic)
 
-instance ToJSON BankResponse
-instance FromJSON BankResponse
 
--}
+createAccount :: TVar(Map AccountId Amount) -> AccountId -> Eff(CapabilityEffect '[IO] AccountCapability ': IO ': '[] ) (Capability AccountCapability)
+createAccount bankRef accountId = do  
+  send $ atomically $ modifyTVar bankRef (Map.insert accountId (Amount 0))
+  create @' [IO] $ \c -> case c of
+    GetBalance  -> do
+      mAmt <- send . atomically $ do 
+        bank <- readTVar bankRef
+        pure (Map.lookup accountId bank)
+      case mAmt of
+        Just amt -> do 
+          send $ putStrLn $ show accountId ++ " has " ++ show amt ++ "$"
+          pure amt 
+        Nothing -> do 
+          send $ putStrLn $ "No account found for " ++ show accountId 
+          pure (Amount 0) 
+
+type BankTest = CapabilityEffect '[IO] AccountCapability ': IO ': '[]  
+     
+
+accountTest :: Eff BankTest () 
+accountTest = do 
+  bankRef <- send $  newTVarIO Map.empty 
+  let id0 = AccountId 0 
+  let id1 = AccountId 1 
+  testAccount0 <- createAccount bankRef id0
+  testAccount1 <- createAccount bankRef id1
+  use @'[IO] testAccount0 $ GetBalance  
+  use @'[IO] testAccount1 $ GetBalance 
+  return ()
+
+
+runAccountTest = runM $  evalState emptyCapabilityMap (runCapabilityEffect accountTest)
