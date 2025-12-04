@@ -12,8 +12,21 @@ type Capability f = Integer
 
 data CapabilityEffect effs f a where
   Create :: (forall a. f a -> Eff effs a) -> CapabilityEffect effs f (Capability f)
-  Use :: Capability f -> f a -> CapabilityEffect effs f a 
+  Use :: Capability f -> f a -> CapabilityEffect effs f a
 
+
+data ReceiveCapability c a where 
+  Receive :: ReceiveCapability c (Capability c) 
+
+
+-- connect skal gjøre denne biten   create @' [IO] $ \c -> case c of
+connect :: IO (c a -> IO a) -> Eff(CapabilityEffect '[IO] (ReceiveCapability c) ': IO ': '[] ) (Capability (ReceiveCapability c)) 
+connect service = undefined
+
+-- In Bank Example (I BankCapability) we need: createBankService :: IO (IO (AccountCapability a -> IO a))
+-- createBankService(skal lages i BankCapability ) createa a new TVar with the bank map, and forks a thread to handle requests to create a accounts and handle
+-- account actions
+-- 
 
 create :: forall effs0 effs f.  Member (CapabilityEffect effs0 f) effs => (forall a. f a -> Eff effs0 a) -> Eff effs (Capability f)
 create handler = send (Create @f @effs0 handler)

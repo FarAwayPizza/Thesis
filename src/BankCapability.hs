@@ -5,7 +5,7 @@ module BankCapability where
 import GHC.Generics (Generic)
 import Data.Aeson
 import Control.Monad.Freer 
-import Control.Concurrent.STM (atomically, newTVar, newTVarIO, readTVar, TVar, modifyTVar)
+import Control.Concurrent.STM (atomically, newTVar, newTVarIO, readTVar, TVar, modifyTVar, writeTVar)
 import Control.Monad 
 import qualified Data.Map as Map
 import Data.Map(Map)
@@ -22,7 +22,7 @@ import FreerCapability
   )
 
 newtype InitialBalance = InitialBalance Integer deriving (Show, ToJSON, FromJSON)
-newtype Amount = Amount Integer deriving (Show, ToJSON, FromJSON) 
+newtype Amount = Amount Integer deriving (Num, Eq, Ord, Show, ToJSON, FromJSON) 
 newtype AccountId = AccountId Integer deriving (Show, Eq, Ord, ToJSON, FromJSON)
 
 type BankState = Map.Map AccountId Amount
@@ -63,9 +63,9 @@ instance FromJSON SomeAccountCapability where
 
 createAccount :: TVar(Map AccountId Amount) -> AccountId -> Eff(CapabilityEffect '[IO] AccountCapability ': IO ': '[] ) (Capability AccountCapability)
 createAccount bankRef accountId = do  
-  send $ atomically $ modifyTVar bankRef (Map.insert accountId (Amount 0))
+  send $ atomically $ modifyTVar bankRef (Map.insert accountId (Amount 150))
   create @' [IO] $ \c -> case c of
-    GetBalance  -> do
+    GetBalance -> do
       mAmt <- send . atomically $ do 
         bank <- readTVar bankRef
         pure (Map.lookup accountId bank)
@@ -75,7 +75,29 @@ createAccount bankRef accountId = do
           pure amt 
         Nothing -> do 
           send $ putStrLn $ "No account found for " ++ show accountId 
-          pure (Amount 0) 
+          pure (Amount 0)
+    GetAccountId -> do 
+      send $ putStrLn $ "Your accountId is " ++ show accountId
+      pure accountId
+    Transfer destId amount -> do
+      send . atomically $ do 
+        bank <- readTVar bankRef
+        let srcBal = Map.lookup accountId bank
+        let dstBal = Map.lookup destId bank
+        case (srcBal, dstBal) of 
+          (Just s, Just d) -> do 
+                                if s >= amount
+                                  then do 
+                                        let newSourceBalance = s - amount
+                                        let newDestinationBalance = d + amount
+                                        writeTVar bankRef $ Map.insert accountId newSourceBalance 
+                                                          $ Map.insert destId newDestinationBalance bank 
+                                        pure $ Right newSourceBalance 
+                                  else pure $ Left "Not sufficient funds" 
+          _ -> pure $ Left "Account not found" 
+       
+          
+      
 
 type BankTest = CapabilityEffect '[IO] AccountCapability ': IO ': '[]  
      
@@ -85,10 +107,18 @@ accountTest = do
   bankRef <- send $  newTVarIO Map.empty 
   let id0 = AccountId 0 
   let id1 = AccountId 1 
+  let id2 = AccountId 2 
   testAccount0 <- createAccount bankRef id0
   testAccount1 <- createAccount bankRef id1
+  testAccount3 <- createAccount bankRef id2 
   use @'[IO] testAccount0 $ GetBalance  
-  use @'[IO] testAccount1 $ GetBalance 
+  use @'[IO] testAccount1 $ GetBalance
+  use @'[IO] testAccount3 $ GetAccountId
+  use @'[IO] testAccount1 $ Transfer id2 (Amount 50)
+  use @'[IO] testAccount1 $ GetBalance  
+  use @'[IO] testAccount3 $ GetBalance
+
+
   return ()
 
 
