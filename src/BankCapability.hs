@@ -95,9 +95,10 @@ createAccount bankRef accountId = do
                                         pure $ Right newSourceBalance 
                                   else pure $ Left "Not sufficient funds" 
           _ -> pure $ Left "Account not found" 
-       
-          
-      
+
+
+createBankService :: IO (IO (AccountCapability a -> IO a))
+createBankService = undefined
 
 type BankTest = CapabilityEffect '[IO] AccountCapability ': IO ': '[]  
      
