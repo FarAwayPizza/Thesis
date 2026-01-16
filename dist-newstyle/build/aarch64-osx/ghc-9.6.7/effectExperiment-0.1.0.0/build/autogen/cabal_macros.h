@@ -80,6 +80,26 @@
   (major1) == 0 && (major2) <  5 || \
   (major1) == 0 && (major2) == 5 && (minor) <= 0)
 #endif /* MIN_VERSION_network_run */
+/* package servant-0.20.3.0 */
+#ifndef VERSION_servant
+#define VERSION_servant "0.20.3.0"
+#endif /* VERSION_servant */
+#ifndef MIN_VERSION_servant
+#define MIN_VERSION_servant(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  20 || \
+  (major1) == 0 && (major2) == 20 && (minor) <= 3)
+#endif /* MIN_VERSION_servant */
+/* package servant-server-0.20.3.0 */
+#ifndef VERSION_servant_server
+#define VERSION_servant_server "0.20.3.0"
+#endif /* VERSION_servant_server */
+#ifndef MIN_VERSION_servant_server
+#define MIN_VERSION_servant_server(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  20 || \
+  (major1) == 0 && (major2) == 20 && (minor) <= 3)
+#endif /* MIN_VERSION_servant_server */
 /* package stm-2.5.1.0 */
 #ifndef VERSION_stm
 #define VERSION_stm "2.5.1.0"
@@ -90,6 +110,16 @@
   (major1) == 2 && (major2) <  5 || \
   (major1) == 2 && (major2) == 5 && (minor) <= 1)
 #endif /* MIN_VERSION_stm */
+/* package warp-3.4.12 */
+#ifndef VERSION_warp
+#define VERSION_warp "3.4.12"
+#endif /* VERSION_warp */
+#ifndef MIN_VERSION_warp
+#define MIN_VERSION_warp(major1,major2,minor) (\
+  (major1) <  3 || \
+  (major1) == 3 && (major2) <  4 || \
+  (major1) == 3 && (major2) == 4 && (minor) <= 12)
+#endif /* MIN_VERSION_warp */
 
 /* tool gcc-17.0.0 */
 #ifndef TOOL_VERSION_gcc

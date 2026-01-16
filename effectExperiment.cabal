@@ -69,7 +69,9 @@ library
                       ConcurrentTCP,
                       OriginalCapability,
                       ClientEffects,
-                      BankCapability 
+                      BankCapability,
+                      APIs,
+                      Rest 
                       
 
     -- LANGUAGE extensions used by modules in this package.
@@ -83,7 +85,10 @@ library
                       network,
                       network-run,
                       bytestring,
-                      containers 
+                      containers, 
+                      servant,
+                      servant-server,
+                      warp
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -114,7 +119,8 @@ executable effectExperiment
         aeson,
         freer-simple,
         stm,
-        containers 
+        containers,
+        warp
 
     -- Directories containing source files.
     hs-source-dirs:   app

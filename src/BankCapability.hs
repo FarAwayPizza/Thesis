@@ -98,7 +98,9 @@ createAccount bankRef accountId = do
 
 
 createBankService :: IO (IO (AccountCapability a -> IO a))
-createBankService = undefined
+createBankService = undefined 
+  -- bankStateTVar <- atomically $ newTVar Map.empty
+
 
 type BankTest = CapabilityEffect '[IO] AccountCapability ': IO ': '[]  
      

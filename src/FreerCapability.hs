@@ -18,13 +18,15 @@ data CapabilityEffect effs f a where
 data ReceiveCapability c a where 
   Receive :: ReceiveCapability c (Capability c) 
 
-
-connect :: IO (forall a. c a -> IO a) -> Eff(CapabilityEffect '[IO] (ReceiveCapability c) ': IO ': '[] ) (Capability (ReceiveCapability c)) 
-connect service =  create @'[IO] $ \c -> case c of 
+{-   Commented out do to erroer message 
+connect :: forall c. IO (forall a. c a -> IO a) -> Eff(CapabilityEffect '[IO, CapabilityEffect '[IO] c] (ReceiveCapability c) ': IO ': '[] ) (Capability (ReceiveCapability c)) 
+connect service =  create @'[IO, CapabilityEffect '[IO] c] $ \c -> case c of 
    Receive -> do 
-       handlerFn <- (send service); 
-       let innerHandler x  = send (handlerFn x)
-       create @'[IO] innerHandler
+       handlerFn :: forall a. c a -> IO a <- (send service) 
+       -- let innerHandler x  = send (handlerFn x)
+       send (Create @c @'[IO] (\x -> send (handlerFn x)) )  -- create @'[IO] 
+     
+-}
                                                                                                     
                                                                                                    
 --  Bank Example (I BankCapability) we need: createBankService :: IO (IO (AccountCapability a -> IO a))
