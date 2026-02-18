@@ -9,7 +9,7 @@ import Prelude hiding (read)
 import Network.Socket hiding (accept)
 import qualified Network.Socket as Socket 
 import System.IO  
-import Control.Concurrent (forkIO)
+import Control.Concurrent() 
 
 -- A server talks to many  clients 
 data Server client a where 
@@ -60,19 +60,19 @@ runServerSimple :: Eff '[Server String, IO] a -> Eff '[IO] a
 runServerSimple = interpret f where 
   f :: Server String ~> Eff '[IO] 
   f Accept = return "client_1"
-  f (ReadFrom clientId) = send getLine  
-  f (WriteTo clientId msg) = send (putStrLn msg)
+  f (ReadFrom _clientId) = send getLine  
+  f (WriteTo _clientId msg) = send (putStrLn msg)
 
   
 runClientTCP :: Member IO effs => Eff (Client ': effs) a -> Eff effs a 
 runClientTCP action = do 
   addr <- send $ head <$> getAddrInfo (Just (defaultHints { addrSocketType = Stream})) (Just "127.0.0.1") (Just "1234")
-  socket <- send$ (openSocket addr) 
-  send$ connect socket $ addrAddress addr 
-  hcon <- send$ socketToHandle socket ReadWriteMode 
+  sock <- send$ (openSocket addr) 
+  send$ connect sock $ addrAddress addr 
+  hcon <- send$ socketToHandle sock ReadWriteMode 
 
   x <- interpret (f hcon) action 
-  send $ close socket 
+  send $ close sock 
   return x where
     f :: Member IO effs => Handle -> Client ~> Eff effs 
     f h  Read = send $ hGetLine h  
@@ -82,40 +82,40 @@ runClientTCP action = do
 runServerTCP :: Member IO effs => Eff (Server String ': effs) a -> Eff effs a 
 runServerTCP action = do
   addr <- send $ head <$> getAddrInfo (Just (defaultHints {addrSocketType = Stream})) (Just "127.0.0.1") (Just "1234")
-  socket <- send $ openSocket addr 
-  send $ bind socket (addrAddress addr)
-  send $ listen socket 1024
+  sock <- send $ openSocket addr 
+  send $ bind sock (addrAddress addr)
+  send $ listen sock 1024
   
-  (clientSocket, _) <- send $ Socket.accept socket 
+  (clientSocket, _) <- send $ Socket.accept sock 
   hcon <- send $ socketToHandle clientSocket ReadWriteMode
 
   result <- interpret (serverInterpreter hcon) action
   send $ close clientSocket
-  send $ close socket 
+  send $ close sock 
   return result
   where
     serverInterpreter :: Member IO effs => Handle -> Server String ~> Eff effs  
-    serverInterpreter h Accept = return "client_1" 
-    serverInterpreter h (ReadFrom clientId) = send $ hGetLine h 
-    serverInterpreter h (WriteTo clientId msg) = send $ hPutStrLn h msg
+    serverInterpreter _h Accept = return "client_1" 
+    serverInterpreter h (ReadFrom _clientId) = send $ hGetLine h 
+    serverInterpreter h (WriteTo _clientId msg) = send $ hPutStrLn h msg
 
 
 runServerTCPSequential :: Member IO effs => Eff (Server String ': effs) a -> Eff effs ()
 runServerTCPSequential action = do
   send $ putStrLn "Starting sequential server on port 1234..."
   addr <- send $ head <$> getAddrInfo (Just defaultHints { addrSocketType = Stream }) (Just "127.0.0.1") (Just "1234")
-  socket <- send $ openSocket addr
-  send $ bind socket (addrAddress addr)
-  send $ listen socket 1024
+  sock <- send $ openSocket addr
+  send $ bind sock (addrAddress addr)
+  send $ listen sock 1024
   send $ putStrLn "Server ready! Waiting for clients..."
   
 
   let serverLoop clientNumber = do
         send $ putStrLn $ "Waiting for client #" ++ show clientNumber ++ "..."
-        (clientSocket, clientAddr) <- send $ Socket.accept socket
+        (clientSocket, clientAddr) <- send $ Socket.accept sock
         send $ putStrLn $ "Client #" ++ show clientNumber ++ " connected from: " ++ show clientAddr
         hcon <- send $ socketToHandle clientSocket ReadWriteMode
-        result <- interpret (sequentialServerInterpreter hcon clientNumber) action
+        _result <- interpret (sequentialServerInterpreter hcon clientNumber) action
         send $ close clientSocket
         send $ putStrLn $ "Client #" ++ show clientNumber ++ " finished with: " ++ "finished"
 
@@ -124,9 +124,9 @@ runServerTCPSequential action = do
   serverLoop 1
   where
     sequentialServerInterpreter :: Member IO effs => Handle -> Int -> Server String ~> Eff effs
-    sequentialServerInterpreter h clientNum Accept = return $ "client_" ++ show clientNum
-    sequentialServerInterpreter h clientNum (ReadFrom clientId) = send $ hGetLine h
-    sequentialServerInterpreter h clientNum (WriteTo clientId msg) = do
+    sequentialServerInterpreter _h clientNum Accept = return $ "client_" ++ show clientNum
+    sequentialServerInterpreter h _clientNum (ReadFrom _clientId) = send $ hGetLine h
+    sequentialServerInterpreter h _clientNum (WriteTo _clientId msg) = do
       send $ hPutStrLn h msg
       send $ hFlush h
 

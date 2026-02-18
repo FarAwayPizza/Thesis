@@ -2,50 +2,56 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 
-module APIs where 
+module APIs where
 
-import Data.Aeson
-import GHC.Generics
-import Network.Wai.Handler.Warp
+import BankCapability (
+  AccountCapability (..),
+  AccountId (..),
+  Amount (..),
+  BankState,
+ )
+import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVarIO, readTVar, writeTVar)
+import Control.Monad.Trans.State -- from the "transformers" library
+import Data.Aeson ()
+import FreerCapability (
+  Capability,
+ )
+import GHC.Generics ()
+import Network.Wai.Handler.Warp ()
 import Servant
 
-type SimpleAPI name res resId = 
-      name :> 
-        ( Get '[JSON] [res] 
-        :<|> Capture "id" resId :> Get '[JSON] res 
-        ) 
+-- Forklaring på hva clienten kan gjøre
+type CapabilityAPI =
+  Capture "capability" (Capability AccountCapability)
+    :> ( "accountId" :> Capture "AccountCapability" (AccountCapability AccountId) :> Get '[JSON] AccountId
+           :<|> "balance" :> Capture "balance" (AccountCapability Amount) :> Get '[JSON] Amount
+           :<|> "transfer" :> Capture "transfer" (AccountCapability (Either String Amount)) :> Get '[JSON] (Either String Amount)
+       )
 
--- Forklaring på hva clienten kan gjøre 
--- API = Capture "capability" (Capability AcccountCapability)
---     :> (     "accountId" :> Capture (AcccountCapability AccountId) :> Get '[JSON] AccountId
---         :<|> "balance" :> Capture (AcccountCapability Amount) :> Get ' [JSON] Amount
---         :<|> "transfer" :> Capture (AcccountCapability (Either String Amount)) :> Get '[JSON] (Either String Amount)
---         )
+--         Neste steg lage handler som bruker capability + IO  på server siden
+--         Plus en handler på client siden
+
+-- capability tilsvarer iden, må kanskje lage en oppslagstabell. Eller om den bare kan brukes straight up.
 --
---         Neste steg lage handler som bruker capability + IO  på server siden 
---         Plus en handler på client siden 
---        
+server :: TVar BankState -> Server CapabilityAPI
+server bankRef capability =
+  getAccountId bankRef capability
+    :<|> getBalance bankRef capability
+    :<|> getTransfer bankRef capability
 
-type API = BankAPI 
-      :<|> SimpleAPI "accounts" Account AccountId 
-      :<|> SimpleAPI "balance" Balance Sum 
-      :<|> SimpleAPI "transfer" Transfer TransferId 
+-- Skal gjøre det samme som createAccount i BankCapability
 
+getAccountId :: TVar BankState -> Capability AccountCapability -> AccountCapability AccountId -> Handler AccountId
+getAccountId bankRef capId accountCap = do
+  bank <- liftIO $ atomically $ readTVar bankRef
+  pure (Map.lookup accountId bank)
 
--- taken from the Servant documentation 
-type FactoringAPI =
-  "x" :> Capture "x" Int :>
-      (    QueryParam "y" Int :> Get '[JSON] Int
-      :<|>                       Post '[JSON] Int
-      )
+-- How do I receive the capability argument from the client request?
+-- How do I extract the account id from the capability?
+-- How do I return it as Jason ?
 
--- GetAccountId - get's your own AccountId
--- Handler [Account] 
+getBalance :: TVar BankState -> Capability AccountCapability -> AccountCapability Amount -> Handler Amount
+getBalance _bankRef _cap _balanceCap = undefined
 
--- GetBalance - get's your own balance
---  toJSON GetBalance = object ["action" .= ("GetBalance" :: String)]
-
--- Transfer - Checks if you have enough money. If you do: Take money from your
---  own account and gives it to someone else.
---   toJSON (Transfer to amount) = object ["action" .= ("Transfer" :: String), "to" .= to, "amount" .= amount]
-
+getTransfer :: TVar BankState -> Capability AccountCapability -> AccountCapability (Either String Amount) -> Handler (Either String Amount)
+getTransfer _bankRef _cap _transferCap = undefined

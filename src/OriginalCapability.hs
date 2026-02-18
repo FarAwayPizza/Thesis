@@ -2,8 +2,8 @@
 
 module OriginalCapability where 
 
-import Control.Applicative
-import Control.Monad (guard,ap)
+import Control.Applicative() 
+import Control.Monad (ap)
 
 -- Original 
 
@@ -25,6 +25,7 @@ data CapabilityEffect f a where
 create :: (forall a. f a -> a) -> Eff (CapabilityEffect f) (Capability f)
 create f = wrap (Create f)
 
+use :: Capability f -> f a -> FreeM (FreeF (CapabilityEffect f)) a 
 use c = wrap . Use c
 
 newtype CapabilityMap f = CapabilityMap (Integer,Integer -> (forall a. f a -> a)) 

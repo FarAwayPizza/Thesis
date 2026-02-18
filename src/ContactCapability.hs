@@ -6,16 +6,14 @@ module ContactCapability where
 import GHC.Generics (Generic)
 import Data.Aeson
 import Control.Monad.Freer 
-import Control.Concurrent.STM (atomically, newTVar, TVar)
+import Control.Concurrent.STM()  
 import Control.Monad 
 import FreerCapability
   ( CapabilityEffect
   , Capability
   , create
   , use
-  , CapabilityMap(CapabilityMap)
-  , runCapabilityEffect 
-  , runCapabilityEffectSTM 
+  , CapabilityMap(CapabilityMap) 
   )
 
 

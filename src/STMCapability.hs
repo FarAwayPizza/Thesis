@@ -3,9 +3,8 @@
 module STMCapability where 
 
 import Control.Concurrent.STM
-import Control.Monad
-import Control.Concurrent.STM
-import Control.Monad
+import Control.Concurrent.STM() 
+import Control.Monad()
 
 
 type Capability f = Integer 

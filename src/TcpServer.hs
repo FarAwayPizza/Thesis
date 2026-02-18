@@ -6,9 +6,11 @@ import Control.Concurrent
 import qualified Control.Exception as E
 import System.IO
 import Control.Concurrent.STM
-import Control.Concurrent.STM.TVar
+import Control.Concurrent.STM.TVar ()
 
+-- Decide what to to with "tid" on line 32. Added "tid <- " to get rid of purple warning message
 
+handleClient :: Handle -> TVar String -> IO ()
 handleClient con motd =
   do
     hello <- readTVarIO motd
@@ -16,6 +18,7 @@ handleClient con motd =
     line <- hGetLine con
     atomically $ modifyTVar motd (++ line ++ "\n")
 
+runServer :: IO b 
 runServer = do
    motd <- newTVarIO "Hello\n"
    E.bracket open close (loop motd) where
@@ -29,7 +32,8 @@ runServer = do
         (con,_) <- accept sock
         putStrLn "Someone connected"
         hcon <- socketToHandle con ReadWriteMode
-        forkIO (handleClient hcon motd)
+        _tid <- forkIO (handleClient hcon motd)
+        -- maybe do something with tid later 
         loop motd sock
 
 
