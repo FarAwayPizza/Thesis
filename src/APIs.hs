@@ -11,7 +11,8 @@ import BankCapability (
   BankState,
  )
 import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVarIO, readTVar, writeTVar)
-import Control.Monad.Trans.State -- from the "transformers" library
+
+-- import Control.Monad.Trans.State -- from the "transformers" library
 import Data.Aeson ()
 import FreerCapability (
   Capability,
@@ -42,9 +43,10 @@ server bankRef capability =
 -- Skal gjøre det samme som createAccount i BankCapability
 
 getAccountId :: TVar BankState -> Capability AccountCapability -> AccountCapability AccountId -> Handler AccountId
-getAccountId bankRef capId accountCap = do
-  bank <- liftIO $ atomically $ readTVar bankRef
-  pure (Map.lookup accountId bank)
+getAccountId bankRef capId accountCap = undefined
+
+--  bank <- liftIO $ atomically $ readTVar bankRef
+--  pure (Map.lookup accountId bank)
 
 -- How do I receive the capability argument from the client request?
 -- How do I extract the account id from the capability?
