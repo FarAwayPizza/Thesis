@@ -3,24 +3,25 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, flake-utils }: 
+    flake-utils.lib.eachDefaultSystem (system: 
   let
-    pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+    pkgs = nixpkgs.legacyPackages.${system};
   in {
-    packages.aarch64-darwin.default = 
+    packages.default = 
       pkgs.haskellPackages.callCabal2nix "effectExperiment" ./. { freer-simple = pkgs.haskellPackages.callPackage ./freer.nix {}; };
 
-    devShells.aarch64-darwin.default = 
+    devShells.default = 
       pkgs.haskellPackages.shellFor {
-          packages = p: [ self.packages.aarch64-darwin.default ];
+          packages = p: [ self.packages.${system}.default ];
           buildInputs = with pkgs; [
             cabal-install
             haskell-language-server
             git 
           ];
         };
-
-  };
+  });
 }
