@@ -16,10 +16,14 @@ import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVarIO, readTVar
 import Data.Aeson ()
 import FreerCapability (
   Capability,
+  CapabilityEffect,
+  use,
  )
 import GHC.Generics ()
 import Network.Wai.Handler.Warp ()
 import Servant
+import BankCapability
+import Control.Monad.Freer
 
 -- Forklaring på hva clienten kan gjøre
 type CapabilityAPI =
@@ -28,6 +32,9 @@ type CapabilityAPI =
            :<|> "balance" :> Capture "balance" (AccountCapability Amount) :> Get '[JSON] Amount
            :<|> "transfer" :> Capture "transfer" (AccountCapability (Either String Amount)) :> Get '[JSON] (Either String Amount)
        )
+
+type BankAPI =
+   "getAccountId" :> ReqBody '[JSON] (Capability AccountCapability) :> Get '[JSON] AccountId
 
 --         Neste steg lage handler som bruker capability + IO  på server siden
 --         Plus en handler på client siden
@@ -39,6 +46,16 @@ server bankRef capability =
   getAccountId bankRef capability
     :<|> getBalance bankRef capability
     :<|> getTransfer bankRef capability
+
+type BankM = Eff (CapabilityEffect '[IO] AccountCapability ': IO ': '[])
+
+bankServer :: ServerT BankAPI BankM
+bankServer = handleGetAccountID
+
+handleGetAccountID :: Capability AccountCapability -> BankM AccountId
+handleGetAccountID account = use @'[IO] account GetAccountId 
+
+--bankApp :: TVar BankState 
 
 -- Skal gjøre det samme som createAccount i BankCapability
 
