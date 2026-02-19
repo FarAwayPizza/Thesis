@@ -44,6 +44,8 @@ use :: forall effs0 effs f a. (Member (CapabilityEffect effs0 f) effs) => Capabi
 use cap eff = send (Use @f @a @effs0 cap eff)
 
 newtype CapabilityMap effs f = CapabilityMap (Integer, Integer -> (forall a. f a -> Eff effs a))
+instance Show (CapabilityMap effs f) where
+  show (CapabilityMap (i, _)) = show i
 
 emptyCapabilityMap :: CapabilityMap effs f
 emptyCapabilityMap = CapabilityMap (0, \_ -> undefined)
@@ -78,12 +80,27 @@ runCapabilityEffectSTM ::
   Eff (IO ': effs) a
 runCapabilityEffectSTM capMapTVar = reinterpret $ \case
   Create handler -> do
-    m <- send $ atomically $ do
+    send $ atomically $ do
       currentMap <- readTVar capMapTVar
       let extendedMap = extend currentMap handler
       writeTVar capMapTVar extendedMap
-      return extendedMap
-    return (getNext m)
+      return $ getNext currentMap
   Use cap eff -> do
     m <- send $ atomically $ readTVar capMapTVar
     raise $ call m cap eff
+
+runCapabilityEffectSTM' ::
+  (Member IO effs) =>
+  TVar (CapabilityMap effs f) ->
+  Eff (CapabilityEffect effs f ': effs) a ->
+  Eff (effs) a
+runCapabilityEffectSTM' capMapTVar = interpret $ \case
+  Create handler -> do
+    send $ atomically $ do
+      currentMap <- readTVar capMapTVar
+      let extendedMap = extend currentMap handler
+      writeTVar capMapTVar extendedMap
+      return $ getNext currentMap
+  Use cap eff -> do
+    m <- send $ atomically $ readTVar capMapTVar
+    call m cap eff

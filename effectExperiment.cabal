@@ -89,7 +89,9 @@ library
                       servant,
                       servant-server,
                       transformers,
-                      warp
+                      warp,
+                      http-client, 
+                      servant-client
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -121,7 +123,10 @@ executable effectExperiment
         freer-simple,
         stm,
         containers,
-        warp
+        warp,
+        http-client,
+        servant-client, 
+        servant-server
 
     -- Directories containing source files.
     hs-source-dirs:   app
