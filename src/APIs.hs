@@ -97,15 +97,6 @@ runBankServer = do
 
 -- Skal gjøre det samme som createAccount i BankCapability
 {-
-getAccountId :: TVar BankState -> Capability AccountCapability -> AccountCapability AccountId -> Handler AccountId
-getAccountId bankRef capId accountCap = undefined
-
---  bank <- liftIO $ atomically $ readTVar bankRef
---  pure (Map.lookup accountId bank)
-
--- How do I receive the capability argument from the client request?
--- How do I extract the account id from the capability?
--- How do I return it as Jason ?
 
 getBalance :: TVar BankState -> Capability AccountCapability -> AccountCapability Amount -> Handler Amount
 getBalance _bankRef _cap _balanceCap = undefined
