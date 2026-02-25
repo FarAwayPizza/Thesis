@@ -48,6 +48,11 @@ type BankAPI =
   "getAccountId" :> ReqBody '[JSON] (Capability AccountCapability) :> Get '[JSON] AccountId
     :<|> "getBalance" :> ReqBody '[JSON] (Capability AccountCapability) :> Get '[JSON] Amount
     :<|> "createTestAccount" :> Get '[JSON] (Capability AccountCapability)
+    :<|> "transfer"
+      :> ReqBody '[JSON] (Capability AccountCapability)
+      :> ReqBody '[JSON] AccountId
+      :> ReqBody '[JSON] Amount
+      :> Post '[JSON] (Either String Amount)
 
 bankapi :: Proxy BankAPI
 bankapi = Proxy
@@ -73,12 +78,16 @@ bankServer =
   handleGetAccountID
     :<|> handleGetBalance
     :<|> handleCreateTestAccount
+    :<|> handleTransfer
 
 handleGetAccountID :: Capability AccountCapability -> BankM AccountId
 handleGetAccountID account = use @'[IO] account GetAccountId
 
 handleGetBalance :: Capability AccountCapability -> BankM Amount
 handleGetBalance account = use @'[IO] account GetBalance
+
+handleTransfer :: Capability AccountCapability -> AccountId -> Amount -> BankM (Either String Amount)
+handleTransfer account accId amount = use @'[IO] account (Transfer accId amount)
 
 handleCreateTestAccount :: BankM (Capability AccountCapability)
 handleCreateTestAccount = do
@@ -100,13 +109,15 @@ runBankServer = do
   readTVarIO capMap >>= print
   let runApp = run port (bankApp bankRef capMap)
   bracket (forkIO runApp) killThread $ \_ -> do
-    let getAccountId' :<|> getBalance' :<|> createTestAccount = client bankapi
+    let getAccountId' :<|> getBalance' :<|> createTestAccount :<|> transfer' = client bankapi
     _ <- flip runClientM (mkClientEnv mgr (BaseUrl Http "localhost" 8080 "")) $ do
       testAccount <- createTestAccount
       idT <- getAccountId' testAccount
       liftIO $ print idT
       bT <- getBalance' testAccount
       liftIO $ print bT
+      tT <- transfer' testAccount
+      liftIO $ print tT
       return ()
     threadDelay 3000000
     return ()
