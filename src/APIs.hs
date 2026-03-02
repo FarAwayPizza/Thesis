@@ -93,8 +93,12 @@ handleCreateTestAccount :: BankM (Capability AccountCapability)
 handleCreateTestAccount = do
   bankRef <- ask
   bank <- send $ readTVarIO bankRef
-  let AccountId maxId = maximum (Map.keys bank)
-  raise $ createAccount bankRef (AccountId (maxId + 1))
+  let newId =
+        case Map.keys bank of
+          [] -> AccountId 0
+          ks -> let AccountId maxId = maximum ks in AccountId (maxId + 1)
+  -- let AccountId maxId = maximum (Map.keys bank)
+  raise $ createAccount bankRef newId
 
 bankApp :: TVar (Map AccountId Amount) -> TVar (CapabilityMap '[IO] AccountCapability) -> Application
 bankApp bank s = serve bankapi $ hoistServer bankapi (liftIO . runM . runCapabilityEffectSTM' s . runReader bank) bankServer
@@ -116,7 +120,7 @@ runBankServer = do
       liftIO $ print idT
       bT <- getBalance' testAccount
       liftIO $ print bT
-      tT <- transfer' testAccount
+      tT <- transfer' testAccount idT bT
       liftIO $ print tT
       return ()
     threadDelay 3000000
