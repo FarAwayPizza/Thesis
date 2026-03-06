@@ -60,7 +60,9 @@ library
     -- Modules exported by the library.
     exposed-modules:  MyLib,
                       FreerCapability, 
-                      ContactCapability 
+                      ContactCapability,
+                      BankCapability,
+                      APIs
 
     -- Modules included in this library but not exported.
     other-modules:    STMCapability,
@@ -69,8 +71,6 @@ library
                       ConcurrentTCP,
                       OriginalCapability,
                       ClientEffects,
-                      BankCapability,
-                      APIs,
                       Rest,
                       Server,
                       Client 
