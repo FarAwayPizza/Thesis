@@ -4,13 +4,8 @@
 
 module APIs where
 
-import BankCapability (
-  AccountCapability (..),
-  AccountId (..),
-  Amount (..),
-  BankState,
- )
-import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVarIO, readTVar, readTVarIO, writeTVar)
+import BankCapability ()
+import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO)
 import Network.HTTP.Client (defaultManagerSettings, newManager)
 
 import Control.Concurrent (forkIO, killThread, threadDelay)
@@ -37,13 +32,6 @@ import Network.Wai.Handler.Warp (run)
 import Servant
 
 -- Forklaring på hva clienten kan gjøre
-type CapabilityAPI =
-  Capture "capability" (Capability AccountCapability)
-    :> ( "accountId" :> Capture "AccountCapability" (AccountCapability AccountId) :> Get '[JSON] AccountId
-           :<|> "balance" :> Capture "balance" (AccountCapability Amount) :> Get '[JSON] Amount
-           :<|> "transfer" :> Capture "transfer" (AccountCapability (Either String Amount)) :> Get '[JSON] (Either String Amount)
-       )
-
 type BankAPI =
   "getAccountId" :> ReqBody '[JSON] (Capability AccountCapability) :> Get '[JSON] AccountId
     :<|> "getBalance" :> ReqBody '[JSON] (Capability AccountCapability) :> Get '[JSON] Amount
@@ -57,20 +45,6 @@ type BankAPI =
 bankapi :: Proxy BankAPI
 bankapi = Proxy
 
---         Neste steg lage handler som bruker capability + IO  på server siden
---         Plus en handler på client siden
-
--- capability tilsvarer iden, må kanskje lage en oppslagstabell. Eller om den bare kan brukes straight up.
--- {-
----}
---
-{-
-server :: TVar BankState -> Server CapabilityAPI
-server bankRef capability =
-  getAccountId bankRef capability
-    :<|> getBalance bankRef capability
-    :<|> getTransfer bankRef capability
--}
 type BankM = Eff (Reader (TVar (Map AccountId Amount)) ': CapabilityEffect '[IO] AccountCapability ': IO ': '[])
 
 bankServer :: ServerT BankAPI BankM

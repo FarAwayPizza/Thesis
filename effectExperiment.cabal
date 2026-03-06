@@ -71,7 +71,9 @@ library
                       ClientEffects,
                       BankCapability,
                       APIs,
-                      Rest 
+                      Rest,
+                      Server,
+                      Client 
                       
 
     -- LANGUAGE extensions used by modules in this package.
