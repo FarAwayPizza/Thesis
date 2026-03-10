@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Server where
 
@@ -9,11 +10,12 @@ import Control.Monad.Freer.Reader
 import Control.Monad.IO.Class
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Network.Wai.Handler.Warp (run)
 import Servant
 
 import APIs
 import BankCapability
-import FreerCapability (Capability, CapabilityEffect, CapabilityMap, runCapabilityEffectSTM', use)
+import FreerCapability (Capability, CapabilityEffect, CapabilityMap, emptyCapabilityMap, runCapabilityEffectSTM', use)
 
 type BankM = Eff (Reader (TVar (Map AccountId Amount)) ': CapabilityEffect '[IO] AccountCapability ': IO ': '[])
 
@@ -46,3 +48,14 @@ handleCreateTestAccount = do
 
 bankApp :: TVar (Map AccountId Amount) -> TVar (CapabilityMap '[IO] AccountCapability) -> Application
 bankApp bank s = serve bankapi $ hoistServer bankapi (liftIO . runM . runCapabilityEffectSTM' s . runReader bank) bankServer
+
+runBankServer :: IO ()
+runBankServer = do
+  let port = 8080
+
+  capMap <- newTVarIO emptyCapabilityMap
+  bankRef <- newTVarIO Map.empty
+
+  putStrLn ("Bank server runnin on port " ++ show port)
+
+  run port (bankApp bankRef capMap)

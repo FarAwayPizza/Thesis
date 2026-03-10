@@ -62,7 +62,9 @@ library
                       FreerCapability, 
                       ContactCapability,
                       BankCapability,
-                      APIs
+                      APIs,
+                      Server,
+                      Client
 
     -- Modules included in this library but not exported.
     other-modules:    STMCapability,
@@ -71,9 +73,7 @@ library
                       ConcurrentTCP,
                       OriginalCapability,
                       ClientEffects,
-                      Rest,
-                      Server,
-                      Client 
+                      Rest 
                       
 
     -- LANGUAGE extensions used by modules in this package.
@@ -101,12 +101,12 @@ library
     -- Base language which the package is written in.
     default-language: GHC2021
 
-executable effectExperiment
+executable server
     -- Import common warning flags.
     import:           warnings
 
     -- .hs or .lhs file containing the Main module.
-    main-is:          Main.hs
+    main-is:          ServerMain.hs
 
     -- Modules included in this executable, other than Main.
     -- other-modules:
@@ -118,13 +118,8 @@ executable effectExperiment
     build-depends:
         base,
         effectExperiment, 
-        network,
-        network-run,
-        bytestring,
-        aeson,
         freer-simple,
         stm,
-        containers,
         warp,
         http-client,
         servant-client, 
@@ -136,6 +131,39 @@ executable effectExperiment
     -- Base language which the package is written in.
     default-language: GHC2021
 
+
+executable client 
+    -- Import common warning flags.
+    import:           warnings
+
+    -- .hs or .lhs file containing the Main module.
+    main-is:          ClientMain.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+
+    -- Other library packages from which modules are imported.
+    build-depends:
+        base,
+        effectExperiment, 
+        freer-simple,
+        stm,
+        containers,
+        warp,
+        http-client,
+        servant-client, 
+
+    -- Directories containing source files.
+    hs-source-dirs:   app
+
+    -- Base language which the package is written in.
+    default-language: GHC2021
+
+
+  
 test-suite effectExperiment-test
     -- Import common warning flags.
     import:           warnings
