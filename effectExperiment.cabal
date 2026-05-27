@@ -93,7 +93,8 @@ library
                       transformers,
                       warp,
                       http-client, 
-                      servant-client
+                      servant-client,
+                      
 
     -- Directories containing source files.
     hs-source-dirs:   src

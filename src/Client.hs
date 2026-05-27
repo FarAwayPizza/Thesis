@@ -27,5 +27,4 @@ runBankClient = do
     tT <- transfer' testAccount idT bT
     liftIO $ print tT
     return ()
-  threadDelay 3000000
   return ()

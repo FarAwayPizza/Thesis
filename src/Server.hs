@@ -43,7 +43,6 @@ handleCreateTestAccount = do
         case Map.keys bank of
           [] -> AccountId 0
           ks -> let AccountId maxId = maximum ks in AccountId (maxId + 1)
-  -- let AccountId maxId = maximum (Map.keys bank)
   raise $ createAccount bankRef newId
 
 bankApp :: TVar (Map AccountId Amount) -> TVar (CapabilityMap '[IO] AccountCapability) -> Application
