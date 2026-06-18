@@ -13,6 +13,9 @@ module FreerCapability where
 import Control.Concurrent.STM
 import Control.Monad.Freer
 import Control.Monad.Freer.State
+import Crypto.Random (getRandomBytes)
+import Data.Bits (shiftL, (.|.))
+import Data.ByteString qualified as BS
 
 type Capability f = Integer
 
@@ -23,7 +26,7 @@ data CapabilityEffect effs f a where
 data ReceiveCapability c a where
   Receive :: ReceiveCapability c (Capability c)
 
-{-   Commented out do to erroer message
+{-   Commented out do to error message
 connect :: forall c. IO (forall a. c a -> IO a) -> Eff(CapabilityEffect '[IO, CapabilityEffect '[IO] c] (ReceiveCapability c) ': IO ': '[] ) (Capability (ReceiveCapability c))
 connect service =  create @'[IO, CapabilityEffect '[IO] c] $ \c -> case c of
    Receive -> do
@@ -53,8 +56,13 @@ emptyCapabilityMap = CapabilityMap (0, \_ -> undefined)
 getNext :: CapabilityMap effs f -> Capability f
 getNext (CapabilityMap (i, _)) = i
 
-extend :: CapabilityMap effs f -> (forall a. f a -> Eff effs a) -> CapabilityMap effs f
-extend (CapabilityMap (s, m)) c = CapabilityMap (s + 1, \x -> if x == s then c else m x)
+freshCapability :: IO (Capability f)
+freshCapability = do
+  bytes <- getRandomBytes 16 :: IO BS.ByteString
+  return (BS.foldl' (\acc b -> shiftL acc 8 .|. fromIntegral b) 0 bytes)
+
+extend :: CapabilityMap effs f -> Capability f -> (forall a. f a -> Eff effs a) -> CapabilityMap effs f
+extend (CapabilityMap (s, m)) t c = CapabilityMap (s + 1, \x -> if x == t then c else m x)
 
 call :: CapabilityMap effs f -> Integer -> f a -> Eff effs a
 call (CapabilityMap (_, m)) i x = m i x
@@ -65,7 +73,7 @@ runCapabilityEffect ::
 runCapabilityEffect = reinterpret $ \case
   Create handler -> do
     m <- get
-    put (extend m handler)
+    put (extend m (getNext m) handler)
     return (getNext m)
   Use cap eff -> do
     m <- get
@@ -80,11 +88,11 @@ runCapabilityEffectSTM ::
   Eff (IO ': effs) a
 runCapabilityEffectSTM capMapTVar = reinterpret $ \case
   Create handler -> do
+    cap <- send freshCapability
     send $ atomically $ do
       currentMap <- readTVar capMapTVar
-      let extendedMap = extend currentMap handler
-      writeTVar capMapTVar extendedMap
-      return $ getNext currentMap
+      writeTVar capMapTVar (extend currentMap cap handler)
+      return $ cap
   Use cap eff -> do
     m <- send $ atomically $ readTVar capMapTVar
     raise $ call m cap eff
@@ -96,11 +104,11 @@ runCapabilityEffectSTM' ::
   Eff (effs) a
 runCapabilityEffectSTM' capMapTVar = interpret $ \case
   Create handler -> do
+    cap <- send freshCapability
     send $ atomically $ do
       currentMap <- readTVar capMapTVar
-      let extendedMap = extend currentMap handler
-      writeTVar capMapTVar extendedMap
-      return $ getNext currentMap
+      writeTVar capMapTVar (extend currentMap cap handler)
+      return $ cap
   Use cap eff -> do
     m <- send $ atomically $ readTVar capMapTVar
     call m cap eff

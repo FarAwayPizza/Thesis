@@ -87,13 +87,14 @@ library
                       network,
                       network-run,
                       bytestring,
-                      containers, 
+                      containers,  
                       servant,
                       servant-server,
                       transformers,
                       warp,
                       http-client, 
                       servant-client,
+                      crypton,
                       
 
     -- Directories containing source files.
